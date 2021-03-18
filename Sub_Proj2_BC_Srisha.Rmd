@@ -1,0 +1,121 @@
+---
+title: "BreastCancerProject_Srisha"
+author: "Srisha Gorasa"
+date: "3/17/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#load the mlbench package which has the Breast Cancer data set
+require(mlbench)
+# if you don't have any required package, use the install.packages() command
+# load the data set
+data(BreastCancer)
+# some algorithms don't like missing values, so remove rows with missing values
+BreastCancer <- na.omit(BreastCancer) 
+# remove the unique identifier, which is useless and would confuse the machine learning algorithms
+BreastCancer$Id <- NULL
+```
+
+
+```{r}
+#Support Vector Machine
+library(e1071)
+mysvm <- svm(Class ~ ., BreastCancer)
+mysvm.pred <- predict(mysvm, BreastCancer)
+table(mysvm.pred,BreastCancer$Class)
+```
+
+```{r}
+#Checking the accuracy of the Support Vector Machine model
+library(caret)
+confusionMatrix(mysvm.pred, BreastCancer$Class)
+```
+
+
+```{r}
+#Naive Bayes
+install.packages("klaR")
+library(klaR)
+mynb <- NaiveBayes(Class ~ ., BreastCancer)
+mynb.pred <- predict(mynb,BreastCancer)
+table(mynb.pred$class,BreastCancer$Class)
+```
+
+
+```{r}
+#Checking the accuracy of the Naive Bayes model
+library(caret)
+confusionMatrix(mynb.pred$class, BreastCancer$Class)
+```
+
+
+```{r}
+#Decision trees
+library(rpart)
+mytree <- rpart(Class ~ ., BreastCancer)
+plot(mytree); text(mytree)
+summary(mytree)
+mytree.pred <- predict(mytree,BreastCancer,type="class")
+table(mytree.pred,BreastCancer$Class)
+```
+
+
+```{r}
+#Checking the accuracy of the decision tree model
+library(caret)
+confusionMatrix(BreastCancer$Class,mytree.pred)
+```
+
+```{r}
+#Random Forests
+library(randomForest)
+myrf <- randomForest(Class ~ .,BreastCancer, na.action = na.exclude)
+myrf.pred <- predict(myrf, BreastCancer)
+table(myrf.pred, BreastCancer$Class)
+```
+
+
+```{r}
+#Checking the accuracy of the random forest model
+library(caret)
+confusionMatrix(BreastCancer$Class,myrf.pred)
+```
+
+```{r}
+#Regularised Discriminant Analysis
+library(klaR)
+myrda <- rda(BreastCancer$Class ~ ., BreastCancer)
+myrda.pred <- predict(myrda, BreastCancer)
+table(myrda.pred$class,BreastCancer$Class)
+```
+
+```{r}
+#Checking the accuracy of the rda model
+library(caret)
+confusionMatrix(BreastCancer$Class,myrda.pred$class)
+```
+
+```{r}
+#combining all the above classifiers
+combine.classes<-data.frame(myrf.pred, myrda.pred$class ,
+mytree.pred,mysvm.pred, mynb.pred$class)
+head(combine.classes)
+combine.classes[,1]<-ifelse(combine.classes[,1]=="benign",0,1)
+combine.classes[,2]<-ifelse(combine.classes[,2]=="benign",0,1)
+combine.classes[,3]<-ifelse(combine.classes[,3]=="benign",0,1)
+combine.classes[,4]<-ifelse(combine.classes[,4]=="benign",0,1)
+combine.classes[,5]<-ifelse(combine.classes[,5]=="benign",0,1)
+#Converting combine.classes to numeric
+combine.classes <- as.data.frame(sapply(combine.classes, as.numeric))
+majority.vote <- rowSums(combine.classes)
+head(majority.vote)
+combine.classes[,6]<-rowSums(combine.classes)
+combine.classes[,7]<-ifelse(combine.classes[,6]>=3, "malignant", "benign")
+table(combine.classes[,7], BreastCancer$Class)
+```
